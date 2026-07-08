@@ -12,12 +12,19 @@ class TelegramNotificationService
         $chatId = env('PEPTIDE_VENDORS_CHAT_ID');
         if (!$token || !$chatId) return;
 
-        $text = "🚨 <b>New Vendor Request</b>\nUser: {$user->name} (@{$user->username})\n\n<a href=\"https://pepvguides.com/admin/vendor-access-requests\">Open Admin Panel</a> to approve or deny.";
+        $text = "🚨 <b>New Vendor Request</b>\nUser: {$user->name} (@{$user->username})";
 
         try {
-            Http::get("https://api.telegram.org/bot{$token}/sendMessage", [
+            Http::post("https://api.telegram.org/bot{$token}/sendMessage", [
                 'chat_id' => $chatId,
                 'text' => $text,
+                'parse_mode' => 'HTML',
+                'reply_markup' => json_encode([
+                    'inline_keyboard' => [[
+                        ['text' => '✅ Approve', 'callback_data' => "approve{$requestId}"],
+                        ['text' => '❌ Deny', 'callback_data' => "deny{$requestId}"],
+                    ]],
+                ]),
             ]);
         } catch (\Exception $e) {
             // Silent fail
