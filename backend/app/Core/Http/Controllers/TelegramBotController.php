@@ -30,7 +30,7 @@ class TelegramBotController extends Controller
         $message = $data['message']['text'] ?? '';
         $chatId = $data['message']['chat']['id'] ?? null;
 
-        if (!$chatId) return response('OK');
+        if (!$chatId || $chatId != env("PEPTIDE_VENDORS_CHAT_ID")) return response('OK');
 
         preg_match('/^\/(approve|deny)(\d+)$/', $message, $matches);
         if (!$matches) {
@@ -40,9 +40,9 @@ class TelegramBotController extends Controller
 
         return $this->processAction($matches[1], (int) $matches[2], $chatId);
     }
-
     private function handleCallback(array $callback): mixed
     {
+        if ($chatId != env("PEPTIDE_VENDORS_CHAT_ID")) return response("OK");
         $data = $callback['data'] ?? '';
         $chatId = $callback['message']['chat']['id'] ?? '';
         $messageId = $callback['message']['message_id'] ?? '';
