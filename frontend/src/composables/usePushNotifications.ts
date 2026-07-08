@@ -72,8 +72,8 @@ export function usePushNotifications() {
       })
 
       pushGranted.value = true
-    } catch {
-      // push setup failed silently
+    } catch (err) {
+      console.error('Push subscribe error:', err)
     }
   }
 
