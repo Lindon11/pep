@@ -5,6 +5,7 @@ namespace App\Plugins\Vendors\Controllers\Admin;
 use App\Core\Models\AdminNotification;
 use App\Core\Models\VendorAccessRequest;
 use App\Core\Services\AdminNotificationService;
+use Illuminate\Support\Facades\Http;
 use App\Core\Services\NotificationService;
 use App\Core\Services\WebSocketService;
 use Illuminate\Http\Request;
@@ -36,6 +37,8 @@ class VendorAccessRequestController
             'user_id' => $user->id,
             'status' => 'pending',
         ]);
+
+        $this->sendTelegramNotification($user);
 
         $this->adminNotifications->notifyAll(
             AdminNotification::TYPE_TASK,
