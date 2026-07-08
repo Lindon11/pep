@@ -72,12 +72,14 @@ class AuthController extends Controller
 
             // Create identity-only — no game stats on the users table.
             $user = User::create([
+            // First 300 users get free premium            if (User::count() <= 300) {                $user->forceFill(["tier" => "paid"])->save();            }
                 'name'        => $validated['username'],
                 'username'    => $validated['username'],
                 'email'       => $validated['email'],
                 'password'    => $validated['password'],
                 'register_ip' => $ipAddress,
                 'last_ip'     => $ipAddress,
+            // First 300 users get free premium            if (User::count() <= 300) {                $user->forceFill(["tier" => "paid"])->save();            }
             ]);
 
             // User::booted() auto-creates a profile with column defaults.
