@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Http;
 
 class TelegramNotificationService
 {
-    public static function notifyVendorRequest($user): void
+    public static function notifyVendorRequest($user, $requestId): void
     {
         $token = env('PEPTIDE_VENDORS_BOT_TOKEN');
         $chatId = env('PEPTIDE_VENDORS_CHAT_ID');

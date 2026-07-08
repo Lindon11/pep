@@ -37,7 +37,7 @@ class VendorAccessRequestController
             'status' => 'pending',
         ]);
 
-        \App\Core\Services\TelegramNotificationService::notifyVendorRequest($user);
+        \App\Core\Services\TelegramNotificationService::notifyVendorRequest($user, $vendorAccessRequest->id);
         $this->adminNotifications->notifyAll(
             AdminNotification::TYPE_TASK,
             'Vendor Access Request',
