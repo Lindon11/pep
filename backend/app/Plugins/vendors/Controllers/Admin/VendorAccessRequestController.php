@@ -98,6 +98,7 @@ class VendorAccessRequestController
             $user->update([
                 'is_approved_vendor' => true,
             ]);
+            $user->assignRole('vendor');
 
             $this->notifications->create(
                 $user,
