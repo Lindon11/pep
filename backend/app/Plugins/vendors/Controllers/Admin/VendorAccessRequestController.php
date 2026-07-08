@@ -5,7 +5,6 @@ namespace App\Plugins\Vendors\Controllers\Admin;
 use App\Core\Models\AdminNotification;
 use App\Core\Models\VendorAccessRequest;
 use App\Core\Services\AdminNotificationService;
-use Illuminate\Support\Facades\Http;
 use App\Core\Services\NotificationService;
 use App\Core\Services\WebSocketService;
 use Illuminate\Http\Request;
@@ -38,8 +37,7 @@ class VendorAccessRequestController
             'status' => 'pending',
         ]);
 
-        $this->sendTelegramNotification($user);
-
+        \App\Core\Services\TelegramNotificationService::notifyVendorRequest($user);
         $this->adminNotifications->notifyAll(
             AdminNotification::TYPE_TASK,
             'Vendor Access Request',
@@ -101,7 +99,6 @@ class VendorAccessRequestController
             $user->update([
                 'is_approved_vendor' => true,
             ]);
-            $user->assignRole('vendor');
 
             $this->notifications->create(
                 $user,
