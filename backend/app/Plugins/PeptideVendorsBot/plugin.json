@@ -1,0 +1,32 @@
+{
+    "name": "Peptide Vendors Bot",
+    "slug": "peptidevendorsbot",
+    "version": "1.0.0",
+    "description": "Telegram community management bot for Peptide Vendors - welcomes new members and manages the group.",
+    "author": "LaravelCP",
+    "enabled": true,
+    "license_required": false,
+    "requires": {
+        "laravel": "^11.0",
+        "plugins": {}
+    },
+    "settings": {
+        "icon": "\ud83e\udd16",
+        "color": "#10b981",
+        "menu": {
+            "enabled": false,
+            "order": 80,
+            "section": "admin"
+        }
+    },
+    "permissions": {
+        "peptidevendorsbot.view": "View Peptide Vendors Bot status",
+        "peptidevendorsbot.admin": "Administer Peptide Vendors Bot settings"
+    },
+    "hooks": {},
+    "routes": {
+        "web": true,
+        "api": false,
+        "admin": true
+    }
+}
