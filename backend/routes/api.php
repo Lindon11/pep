@@ -81,6 +81,7 @@ Route::prefix('v1')->group(function () {
     // Public community routes (guests and members — tier gating is internal)
     Route::prefix('community')->group(function () {
         Route::get('/search', [\App\Core\Http\Controllers\SearchController::class, 'search']);
+        Route::get('/home-bootstrap', [\App\Core\Http\Controllers\CommunityBootstrapController::class, 'home']);
     });
 
     // WebSocket routes (public - for guest tracking)
@@ -206,7 +207,6 @@ Route::prefix('v1')->group(function () {
             Route::get('/permissions', [\App\Core\Http\Controllers\Admin\RolePermissionController::class, 'indexPermissions']);
             Route::post('/users/{id}/roles', [\App\Core\Http\Controllers\Admin\RolePermissionController::class, 'assignRoleToUser']);
             Route::delete('/users/{id}/roles', [\App\Core\Http\Controllers\Admin\RolePermissionController::class, 'removeRoleFromUser']);
-        Route::patch("users/bulk/tier", [\App\Core\Http\Controllers\Admin\BulkUserController::class, "updateTier"]);
 
             // Settings
             Route::prefix('settings')->controller(\App\Core\Http\Controllers\Admin\SettingsController::class)->group(function () {
@@ -444,5 +444,4 @@ Route::prefix('core')->group(function () {
 
 // Webhook routes (no auth — Stripe/PayPal call these)
 Route::post('stripe/webhook', [\App\Core\Http\Controllers\MembershipController::class, 'handleStripeWebhook']);
-Route::post('telegram/webhook', [\App\Plugins\PeptideVendorsBot\Controllers\WebhookController::class, 'handle']);
 Route::post('paypal/webhook', [\App\Core\Http\Controllers\MembershipController::class, 'handlePayPalWebhook']);

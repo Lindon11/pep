@@ -12,7 +12,7 @@
         <form @submit.prevent class="pv-form">
           <div class="pv-form-group">
             <label>Syringe Type</label>
-            <div class="pv-syringe-options pv-syringe-options--type">
+            <div class="pv-syringe-options pv-syringe-type-options">
               <label class="pv-radio-card" :class="{ active: syringeType === 100 }">
                 <input type="radio" v-model="syringeType" :value="100" name="syringeType" />
                 <span class="pv-radio-content">
@@ -63,7 +63,7 @@
               </label>
             </div>
             
-            <div v-if="syringePreset === 0" class="pv-input-with-suffix pv-custom-syringe-size">
+            <div v-if="syringePreset === 0" class="pv-input-with-suffix" style="margin-top: 1rem;">
               <input type="number" v-model.number="customSyringeSize" min="0.1" step="0.1" placeholder="e.g. 2" />
               <span class="pv-suffix">mL</span>
             </div>
@@ -88,7 +88,7 @@
           <div class="pv-form-group">
             <label>Desired Dose</label>
             <div class="pv-dose-input-group">
-              <div class="pv-input-with-suffix pv-dose-input">
+              <div class="pv-input-with-suffix" style="flex: 1;">
                 <input type="number" v-model.number="desiredDose" min="1" step="1" placeholder="e.g. 500" />
                 <span class="pv-suffix">{{ doseUnit }}</span>
               </div>
@@ -209,9 +209,15 @@ const exceedsSyringeCapacity = computed(() => {
 
 <style scoped>
 .pv-calculator-page {
-  padding: 2rem;
+  padding: 1rem;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .pv-calculator-page {
+    padding: 2rem;
+  }
 }
 
 .pv-page-header {
@@ -233,23 +239,28 @@ const exceedsSyringeCapacity = computed(() => {
 
 .pv-content-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: 1fr;
   gap: 2rem;
 }
 
 @media (min-width: 768px) {
   .pv-content-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr 1fr;
   }
 }
 
 .pv-calculator-card, .pv-results-card {
-  min-width: 0;
   background: var(--pv-panel);
   border: 1px solid var(--pv-border);
   border-radius: var(--pv-radius);
-  padding: 2rem;
+  padding: 1.25rem;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+@media (min-width: 768px) {
+  .pv-calculator-card, .pv-results-card {
+    padding: 2rem;
+  }
 }
 
 .pv-form {
@@ -271,12 +282,14 @@ const exceedsSyringeCapacity = computed(() => {
 
 .pv-syringe-options {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   gap: 1rem;
 }
 
-.pv-syringe-options--type {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+@media (min-width: 480px) {
+  .pv-syringe-options {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (min-width: 1024px) {
@@ -285,9 +298,18 @@ const exceedsSyringeCapacity = computed(() => {
   }
 }
 
+.pv-syringe-type-options {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (max-width: 350px) {
+  .pv-syringe-type-options {
+    grid-template-columns: 1fr;
+  }
+}
+
 .pv-radio-card {
   display: flex;
-  min-width: 0;
   position: relative;
   cursor: pointer;
 }
@@ -301,8 +323,6 @@ const exceedsSyringeCapacity = computed(() => {
 
 .pv-radio-content {
   flex: 1;
-  min-width: 0;
-  min-height: 5.6rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -339,19 +359,15 @@ const exceedsSyringeCapacity = computed(() => {
   position: relative;
   display: flex;
   align-items: center;
-  min-width: 0;
 }
 
 .pv-input-with-suffix input {
-  width: 100%;
-  min-width: 0;
   padding: 0.75rem 1rem;
   padding-right: 3.5rem;
   font-size: 1.1rem;
-}
-
-.pv-custom-syringe-size {
-  margin-top: 1rem;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .pv-suffix {
@@ -365,15 +381,9 @@ const exceedsSyringeCapacity = computed(() => {
 .pv-dose-input-group {
   display: flex;
   gap: 1rem;
-  min-width: 0;
-}
-
-.pv-dose-input {
-  flex: 1 1 auto;
 }
 
 .pv-select-inline {
-  flex: 0 0 auto;
   background: rgba(3, 7, 14, 0.7);
   border: 1px solid var(--pv-border);
   border-radius: 6px;
@@ -444,11 +454,17 @@ const exceedsSyringeCapacity = computed(() => {
 }
 
 .primary-result .pv-result-value {
-  font-size: 3.5rem;
+  font-size: 2.5rem;
   font-weight: 800;
   color: var(--pv-purple);
   line-height: 1;
   text-shadow: 0 0 20px rgba(124, 58, 237, 0.4);
+}
+
+@media (min-width: 768px) {
+  .primary-result .pv-result-value {
+    font-size: 3.5rem;
+  }
 }
 
 .primary-result .pv-result-value small {
@@ -459,8 +475,14 @@ const exceedsSyringeCapacity = computed(() => {
 
 .pv-result-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 1rem;
+}
+
+@media (min-width: 480px) {
+  .pv-result-row {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .pv-result-row .pv-result-value {
@@ -501,120 +523,39 @@ const exceedsSyringeCapacity = computed(() => {
   height: 20px;
 }
 
-@media (max-width: 640px) {
-  .pv-calculator-page {
-    padding: 1rem;
-  }
-
-  .pv-page-header {
-    margin-bottom: 1.5rem;
-  }
-
-  .pv-page-header h1 {
-    font-size: 1.8rem;
-    line-height: 1.15;
-  }
-
-  .pv-page-header p {
-    font-size: 1rem;
-    line-height: 1.45;
-  }
-
-  .pv-content-grid {
-    gap: 1.25rem;
-  }
-
-  .pv-calculator-card, .pv-results-card {
-    padding: 1.25rem;
-  }
-
-  .pv-form {
-    gap: 1.25rem;
-  }
-
-  .pv-syringe-options {
-    gap: 0.75rem;
-  }
-
-  .pv-radio-content {
-    min-height: 4.75rem;
-    padding: 0.85rem 0.75rem;
-  }
-
-  .pv-radio-content strong {
-    font-size: 1rem;
-  }
-
-  .pv-radio-content small {
-    font-size: 0.78rem;
-  }
-
-  .pv-dose-input-group {
-    gap: 0.75rem;
-  }
-
-  .pv-select-inline {
-    min-width: 4.75rem;
-    padding: 0 0.75rem;
-  }
-
-  .pv-results-card h2 {
-    font-size: 1.35rem;
-    margin-bottom: 1.25rem;
-  }
-
-  .pv-result-box {
-    padding: 1.15rem;
-  }
-
-  .pv-result-box.primary-result {
-    padding: 1.5rem 1rem;
-  }
-
-  .primary-result .pv-result-value {
-    font-size: 2.8rem;
-  }
-
-  .primary-result .pv-result-value small {
-    font-size: 1.25rem;
-  }
-
-  .pv-result-row {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.75rem;
-  }
-
-  .pv-result-row .pv-result-value {
-    font-size: 1.55rem;
-  }
-
-  .pv-result-label {
-    font-size: 0.8rem;
-  }
-}
-
 @media (max-width: 480px) {
-  .pv-syringe-options {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .pv-dose-input-group {
-    flex-direction: column;
-  }
-
-  .pv-select-inline {
-    min-height: 44px;
-    width: 100%;
-  }
-}
-
-@media (max-width: 360px) {
-  .pv-calculator-page {
-    padding: 0.75rem;
-  }
-
   .pv-calculator-card, .pv-results-card {
-    padding: 1rem;
+    padding: 12px;
+  }
+  .pv-form {
+    gap: 16px;
+  }
+  .pv-content-grid {
+    gap: 16px;
+  }
+  .pv-radio-content {
+    padding: 10px 8px;
+  }
+  .pv-radio-content strong {
+    font-size: 0.95rem;
+    margin-bottom: 2px;
+  }
+  .pv-radio-content small {
+    font-size: 0.75rem;
+  }
+  .pv-input-with-suffix input {
+    padding: 0.5rem 0.75rem;
+    padding-right: 3rem;
+    font-size: 0.95rem;
+  }
+  .pv-form-group {
+    gap: 6px;
+  }
+  .pv-form-group label {
+    font-size: 0.9rem;
+  }
+  .pv-syringe-options {
+    gap: 10px;
   }
 }
 </style>

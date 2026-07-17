@@ -10836,3 +10836,26 @@ a[target="_blank"] {
   font-size: 13px;
   font-weight: 600;
 }
+
+@media (max-width: 480px) {
+  .pv-main {
+    padding: calc(var(--pv-topbar) + 12px) 10px 24px;
+  }
+  .pv-page-header h1,
+  .pv-topic-detail h1,
+  .pv-article-hero h1,
+  .pv-login-card h1,
+  .pv-empty-route h1 {
+    font-size: 1.45rem;
+  }
+  .pv-page-header p,
+  .pv-topic-detail p,
+  .pv-article-hero p,
+  .pv-panel p {
+    font-size: 0.85rem;
+    margin-top: 4px;
+  }
+  .pv-panel {
+    padding: 12px;
+  }
+}

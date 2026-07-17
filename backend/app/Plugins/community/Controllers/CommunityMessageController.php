@@ -119,6 +119,13 @@ class CommunityMessageController extends Controller
                 'title' => 'New Message',
                 'message' => "New message from {$senderName}",
             ]);
+            
+            $newMessage = $thread->messages()->latest()->first();
+            $this->websocket->broadcast("dm.{$thread->id}", 'chat.message', [
+                'thread_id' => $thread->id,
+                'message' => (new \App\Core\Http\Resources\CommunityMessageResource($newMessage))->resolve(),
+            ]);
+
             $this->push->send($participant, "New message from {$senderName}", substr(trim($validated['body']), 0, 120), "/messages?thread={$thread->id}");
         }
 
@@ -171,6 +178,12 @@ class CommunityMessageController extends Controller
             'title' => 'New Message',
             'message' => "New message from {$senderName}",
         ]);
+
+        $this->websocket->broadcast("dm.{$threadModel->id}", 'chat.message', [
+            'thread_id' => $threadModel->id,
+            'message' => (new \App\Core\Http\Resources\CommunityMessageResource($message))->resolve(),
+        ]);
+
         $this->push->send($recipient, "New message from {$senderName}", substr($validated['body'], 0, 120), "/messages?thread={$threadModel->id}");
 
         return (new CommunityMessageResource($message))

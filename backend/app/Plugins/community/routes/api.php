@@ -12,6 +12,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/messages/{thread}', 'CommunityMessageController@show')->middleware('tier:paid');
         Route::post('/messages/{thread}/messages', 'CommunityMessageController@store')->middleware('tier:paid');
         Route::delete('/messages/{thread}', 'CommunityMessageController@destroy')->middleware('tier:paid');
+        
+        Route::get('/chat/rooms/{room}', 'CommunityChatRoomController@index');
+        Route::post('/chat/rooms/{room}/messages', 'CommunityChatRoomController@store');
         Route::get('/notifications', 'CommunityNotificationController@index');
         Route::get('/notifications/{notification}', 'CommunityNotificationController@show');
         Route::post('/notifications/{notification}/read', 'CommunityNotificationController@markAsRead');

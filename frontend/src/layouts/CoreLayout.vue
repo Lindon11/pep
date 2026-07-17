@@ -47,7 +47,6 @@
         </router-link>
         <router-link :to="{ path: '/messages', query: { inbox: '1' } }" class="pv-icon-button" aria-label="Messages">
           <PvIcon name="mail" />
-          <span v-if="messageUnreadCount > 0" class="pv-badge">{{ messageUnreadCount }}</span>
         </router-link>
         <div class="pv-account-menu">
           <button
@@ -143,6 +142,7 @@
       <router-view />
     </main>
     <div class="pv-scrim" @click="sidebarOpen = false"></div>
+    <FloatingChatWidget />
   </div>
 </template>
 
@@ -150,6 +150,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import PvIcon from '@/components/peptide/PvIcon.vue'
+import FloatingChatWidget from '@/components/FloatingChatWidget.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationsStore } from '@/stores/notifications'
 import api from '@/services/api'
@@ -278,16 +279,6 @@ const accountAvatar = computed(() => {
   return assetUrl(String(user?.avatar || user?.profile_photo_path || user?.profile_picture || ''))
 })
 const notificationCount = computed(() => notificationsStore.unreadCount)
-const messageUnreadCount = ref(0)
-
-async function fetchMessageUnreadCount() {
-  try {
-    const res = await api.get('/api/v1/community/notifications', { params: { limit: 1 }, cacheTTL: 30000 })
-    messageUnreadCount.value = res.data?.meta?.stats?.messages_unread ?? 0
-  } catch {}
-}
-
-watch(() => authStore.isAuthenticated, val => { if (val) fetchMessageUnreadCount() })
 
 const backendAssetOrigin = () => {
   const configured = String(import.meta.env.VITE_API_URL || '').replace(/\/$/, '')

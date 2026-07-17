@@ -136,3 +136,4 @@ backend/app/Core/Models/archived_plugin/UserTimerController.php
 frontend/.npm-cache
 .npm-cache
 .env
+.git.bak/

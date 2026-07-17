@@ -282,24 +282,16 @@ const toggle2FA = async () => {
 watch(() => settings.value.push_notifications, async (val, old) => {
   if (old === undefined) return
   const { usePushNotifications } = await import('@/composables/usePushNotifications')
-  const { init, requestPermission, unsubscribe } = usePushNotifications()
+  const { requestPermission, unsubscribe } = usePushNotifications()
   if (val) {
-    if (Notification.permission === 'granted') {
-      await init()
-    } else {
-      await requestPermission()
-    }
+    await requestPermission()
   } else {
     await unsubscribe()
   }
 })
 
-onMounted(async () => {
-  await loadSettings()
-  if (settings.value.push_notifications && Notification.permission === 'granted') {
-    const { usePushNotifications } = await import('@/composables/usePushNotifications')
-    usePushNotifications().init()
-  }
+onMounted(() => {
+  loadSettings()
 })
 </script>
 

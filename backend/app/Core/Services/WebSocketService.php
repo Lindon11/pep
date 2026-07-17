@@ -28,6 +28,8 @@ class WebSocketService
         'gang.{id}' => self::CHANNEL_PRESENCE,
         'combat.{id}' => self::CHANNEL_PRIVATE,
         'admin' => self::CHANNEL_PRIVATE,
+        'dm.{id}' => self::CHANNEL_PRIVATE,
+        'room.{slug}' => self::CHANNEL_PRESENCE,
     ];
 
     /**
@@ -267,6 +269,29 @@ class WebSocketService
         if (str_starts_with($channel, 'user.')) {
             $userId = (int) str_replace('user.', '', $channel);
             return $user->id === $userId;
+        }
+
+        if (str_starts_with($channel, 'dm.')) {
+            $threadId = (int) str_replace('dm.', '', $channel);
+            return \App\Core\Models\CommunityMessageThread::where('id', $threadId)
+                ->where(function ($query) use ($user) {
+                    $query->where('user_id', $user->id)
+                        ->orWhere('participant_user_id', $user->id);
+                })->exists();
+        }
+
+        if (str_starts_with($channel, 'room.')) {
+            $slug = str_replace('room.', '', $channel);
+            if ($slug === 'global') {
+                return true;
+            }
+            if ($slug === 'premium-lounge') {
+                return $user->tier === 'premium' || $user->hasRole('admin');
+            }
+            if ($slug === 'vendors') {
+                return $user->is_approved_vendor || $user->hasRole('admin');
+            }
+            return false;
         }
 
         if (str_starts_with($channel, 'gang.')) {
