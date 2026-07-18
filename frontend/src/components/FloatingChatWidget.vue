@@ -1,12 +1,13 @@
 <template>
-  <div class="pv-floating-chat">
+  <div class="pv-floating-chat" :class="{ 'pv-floating-chat--open': isOpen }">
     <button v-if="!isOpen" @click="toggleChat" class="pv-floating-btn" aria-label="Open Chat">
       <PvIcon name="radio-tower" />
     </button>
     <div v-else class="pv-chat-window">
       <header class="pv-chat-header">
         <div class="pv-chat-header-title">
-          <PvIcon name="radio-tower" /> GLOBAL COMMS
+          <PvIcon name="radio-tower" />
+          <span>GLOBAL COMMS</span>
         </div>
         <button class="pv-chat-close" @click="toggleChat" aria-label="Close Chat">
           <PvIcon name="close" />
@@ -194,6 +195,8 @@ onUnmounted(() => {
 .pv-chat-window {
   width: 340px;
   height: 480px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
   background-color: var(--pv-panel);
   backdrop-filter: blur(12px);
   border-radius: var(--pv-radius);
@@ -208,12 +211,15 @@ onUnmounted(() => {
   background-color: var(--pv-panel-strong);
   color: var(--pv-text);
   padding: 12px 16px;
-  display: flex;
+  display: flex !important;
+  grid-template-columns: none;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--pv-border);
 }
 .pv-chat-header-title {
+  flex: 1 1 auto;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -221,6 +227,12 @@ onUnmounted(() => {
   font-size: 14px;
   letter-spacing: 0.5px;
   color: var(--pv-text);
+}
+.pv-chat-header-title span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .pv-chat-header-title svg {
   width: 18px;
@@ -266,6 +278,7 @@ onUnmounted(() => {
 
 .pv-chat-messages {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 16px;
   display: flex;
@@ -293,6 +306,7 @@ onUnmounted(() => {
 }
 
 .pv-chat-message {
+  min-width: 0;
   background-color: var(--pv-panel-muted);
   border: 1px solid var(--pv-border);
   border-radius: 6px;
@@ -300,14 +314,19 @@ onUnmounted(() => {
 }
 .pv-chat-message-header {
   display: flex;
+  gap: 10px;
   justify-content: space-between;
   margin-bottom: 6px;
   font-size: 11px;
 }
 .pv-chat-sender {
+  min-width: 0;
   font-weight: 700;
   color: var(--pv-blue);
   text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .pv-chat-sender.system {
   color: var(--pv-red);
@@ -324,12 +343,14 @@ onUnmounted(() => {
 
 .pv-chat-input-area {
   display: flex;
+  align-items: center;
   padding: 12px;
   background-color: var(--pv-panel-strong);
   border-top: 1px solid var(--pv-border);
 }
 .pv-chat-input-area input {
   flex: 1;
+  min-width: 0;
   background-color: var(--pv-bg-soft);
   border: 1px solid var(--pv-border);
   border-radius: 20px;
@@ -367,5 +388,105 @@ onUnmounted(() => {
 .pv-chat-send-btn svg {
   width: 16px;
   height: 16px;
+}
+
+@media (max-width: 640px) {
+  .pv-floating-chat {
+    right: 14px;
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .pv-floating-chat--open {
+    top: var(--pv-topbar, 116px);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    padding: 8px 10px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: rgba(3, 6, 12, 0.68);
+    backdrop-filter: blur(10px);
+  }
+
+  .pv-floating-btn {
+    width: 54px;
+    height: 54px;
+  }
+
+  .pv-chat-window {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    border-radius: 14px;
+  }
+
+  .pv-chat-header {
+    min-height: 52px;
+    padding: 10px 12px;
+  }
+
+  .pv-chat-header-title {
+    font-size: 13px;
+    letter-spacing: 0.2px;
+  }
+
+  .pv-chat-close {
+    width: 36px;
+    height: 36px;
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border-radius: 8px;
+  }
+
+  .pv-chat-tabs button {
+    min-height: 40px;
+    padding: 0 6px;
+    font-size: 10px;
+    letter-spacing: 0.2px;
+  }
+
+  .pv-chat-messages {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .pv-chat-message {
+    padding: 10px;
+  }
+
+  .pv-chat-message-header {
+    font-size: 10px;
+  }
+
+  .pv-chat-message-body {
+    font-size: 12.5px;
+    line-height: 1.38;
+  }
+
+  .pv-chat-input-area {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 42px;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .pv-chat-input-area input {
+    min-height: 42px;
+    padding: 9px 14px;
+    font-size: 13px;
+  }
+
+  .pv-chat-send-btn {
+    width: 42px;
+    height: 42px;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 360px) {
+  .pv-floating-chat--open {
+    padding-inline: 8px;
+  }
 }
 </style>
