@@ -223,6 +223,41 @@ const router = createRouter({
           path: '/account-duplication',
           name: 'account-duplication',
           component: () => import('../views/AccountDuplicationView.vue')
+        },
+        {
+          path: "/peptide-vendors/dashboard",
+          name: "peptide-vendors-dashboard",
+          component: () => import("../views/PeptideVendorsDashboardView.vue")
+        },
+        {
+          path: "/peptide-vendors/welcome-messages",
+          name: "peptide-vendors-welcome-messages",
+          component: () => import("../views/PeptideVendorsWelcomeMessagesView.vue")
+        },
+        {
+          path: "/peptide-vendors/webhook-updates",
+          name: "peptide-vendors-webhook-updates",
+          component: () => import("../views/PeptideVendorsWebhookUpdatesView.vue")
+        },
+        {
+          path: "/peptide-vendors/permissions",
+          name: "peptide-vendors-permissions",
+          component: () => import("../views/PeptideVendorsPermissionsView.vue")
+        },
+        {
+          path: "/peptide-vendors/verifications",
+          name: "peptide-vendors-verifications",
+          component: () => import("../views/PeptideVendorsVerificationsView.vue")
+        },
+        {
+          path: "/peptide-vendors/questions",
+          name: "peptide-vendors-questions",
+          component: () => import("../views/PeptideVendorsQuestionsView.vue")
+        },
+        {
+          path: "/peptide-vendors/iptv-lines",
+          name: "peptide-vendors-iptv-lines",
+          component: () => import("../views/PeptideVendorsIptvLinesView.vue")
         }
       ]
     }
