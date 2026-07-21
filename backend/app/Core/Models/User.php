@@ -275,6 +275,36 @@ class User extends Authenticatable
 
     // --- Getters ---
 
+    public function getDisplayNameAttribute(): string
+    {
+        return $this->username ?: $this->name ?: 'User';
+    }
+
+    public function getInitialAttribute(): string
+    {
+        $parts = collect(preg_split('/\s+/', trim($this->display_name)) ?: [])->filter();
+        if ($parts->count() > 1) {
+            return strtoupper($parts->take(2)->map(fn (string $part) => substr($part, 0, 1))->join(''));
+        }
+        return strtoupper(substr($this->display_name, 0, 1));
+    }
+
+    public function getColorAttribute(): string
+    {
+        $colors = ['purple', 'blue', 'green', 'pink', 'orange', 'teal'];
+        return $colors[abs(crc32($this->display_name)) % count($colors)] ?? 'purple';
+    }
+
+    public function getRoleLabelAttribute(): string
+    {
+        if (!$this->relationLoaded('roles')) {
+            $this->load('roles');
+        }
+        $roles = $this->roles->pluck('name');
+        $roleLabel = $roles->first(fn (string $role) => $role !== 'user') ?: $roles->first();
+        return $roleLabel ? \Illuminate\Support\Str::headline($roleLabel) : '';
+    }
+
     public function getExperienceAttribute(): mixed { return $this->profileValue('experience'); }
     public function getLevelAttribute(): mixed       { return $this->profileValue('level'); }
     public function getRankAttribute(): mixed        { return $this->profileValue('rank'); }

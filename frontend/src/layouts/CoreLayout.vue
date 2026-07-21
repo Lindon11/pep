@@ -142,7 +142,7 @@
       <router-view />
     </main>
     <div class="pv-scrim" @click="sidebarOpen = false"></div>
-    <FloatingChatWidget />
+    <FloatingChatWidget v-if="authStore.isAuthenticated" />
   </div>
 </template>
 

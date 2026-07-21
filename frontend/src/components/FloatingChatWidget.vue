@@ -6,8 +6,8 @@
     <div v-else class="pv-chat-window">
       <header class="pv-chat-header">
         <div class="pv-chat-header-title">
-          <PvIcon name="radio-tower" />
-          <span>GLOBAL COMMS</span>
+          <PvIcon name="message-square" />
+          <span>Global Chat</span>
         </div>
         <button class="pv-chat-close" @click="toggleChat" aria-label="Close Chat">
           <PvIcon name="close" />
@@ -26,9 +26,9 @@
       </nav>
 
       <div class="pv-chat-messages" ref="messagesContainer">
-        <div v-if="loading" class="pv-chat-notice">Loading comms...</div>
-        <div v-else-if="error" class="pv-chat-notice error">{{ error }}</div>
-        <div v-else-if="messages.length === 0" class="pv-chat-notice">No messages yet. Start the transmission.</div>
+        <div v-if="loading" class="pv-chat-notice">Loading messages...</div>
+        <div v-else-if="error" class="pv-chat-error">{{ error }}</div>
+        <div v-else-if="messages.length === 0" class="pv-chat-notice">No messages yet. Start the conversation.</div>
         
         <div v-for="msg in messages" :key="msg.id" class="pv-chat-message">
           <div class="pv-chat-message-header">
@@ -43,7 +43,7 @@
         <input 
           type="text" 
           v-model="newMessage" 
-          placeholder="ENTER TRANSMISSION..." 
+          placeholder="Type your message..." 
           :disabled="loading || !!error"
           maxlength="1000"
         />
@@ -56,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { websocketService } from '@/services/websocket'
 import api from '@/services/api'
 import PvIcon from '@/components/peptide/PvIcon.vue'
@@ -70,11 +70,25 @@ const messages = ref<any[]>([])
 const newMessage = ref('')
 const messagesContainer = ref<HTMLElement | null>(null)
 
-const rooms = [
-  { slug: 'global', name: 'GLOBAL' },
-  { slug: 'premium-lounge', name: 'PREMIUM' },
-  { slug: 'vendors', name: 'VENDORS' },
-]
+import { hasAnyRole } from '@/composables/usePermission'
+
+const authStore = useAuthStore()
+
+const isAdmin = computed(() => hasAnyRole(['admin']))
+
+const rooms = computed(() => {
+  const allRooms = [
+    { slug: 'global', name: 'GLOBAL' },
+    { slug: 'premium-lounge', name: 'PREMIUM' },
+    { slug: 'vendors', name: 'VENDORS' },
+  ]
+  return allRooms.filter(room => {
+    if (room.slug === 'global') return true
+    if (room.slug === 'premium-lounge') return authStore.user?.tier === 'premium' || isAdmin.value
+    if (room.slug === 'vendors') return authStore.user?.is_approved_vendor || isAdmin.value
+    return false
+  })
+})
 
 let unsubscribe: (() => void) | null = null
 
@@ -96,7 +110,7 @@ const switchRoom = async (slug: string) => {
   unsubscribeRoom()
 
   try {
-    const res = await api.get(`/community/chat/rooms/${slug}`)
+    const res = await api.get(`/api/v1/community/chat/rooms/${slug}`)
     messages.value = res.data.data || []
     scrollToBottom()
     subscribeRoom(slug)
@@ -137,13 +151,18 @@ const sendMessage = async () => {
   newMessage.value = ''
   
   try {
-    // The optimistic update will be handled by the websocket, but we could add it optimistically too.
-    // For now we'll wait for the websocket broadcast to append it.
-    await api.post(`/community/chat/rooms/${activeRoom.value}/messages`, {
+    const res = await api.post(`/api/v1/community/chat/rooms/${activeRoom.value}/messages`, {
       body: text
     })
+    if (res.data && res.data.data) {
+      const msg = res.data.data
+      if (!messages.value.find(m => m.id === msg.id)) {
+        messages.value.push(msg)
+        scrollToBottom()
+      }
+    }
   } catch (err: any) {
-    error.value = "FAILED TO SEND TRANSMISSION."
+    error.value = "Failed to send message."
   }
 }
 
