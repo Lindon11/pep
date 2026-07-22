@@ -20,6 +20,7 @@ class CommunityRoomMessageResource extends JsonResource
         return [
             'id' => $this->id,
             'room' => $this->room,
+            'body' => $this->body,
             'text' => $this->body,
             'time' => $this->sent_at?->diffForHumans() ?? 'just now',
             'sent_at' => $this->sent_at?->toIso8601String(),

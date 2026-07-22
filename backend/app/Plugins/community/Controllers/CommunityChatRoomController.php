@@ -20,15 +20,19 @@ class CommunityChatRoomController extends Controller
         // Authorize via WebSocketService helper to share logic
         abort_if(!$this->websocket->authorizeChannel($request->user(), "room.{$room}"), 403, 'You are not authorized to view this room.');
 
+        $perPage = (int) $request->input('per_page', 50);
+
         $messages = CommunityRoomMessage::with('sender.roles')
             ->where('room', $room)
             ->orderByDesc('id')
-            ->limit(50)
-            ->get()
-            ->reverse()
-            ->values();
+            ->cursorPaginate($perPage);
 
-        return CommunityRoomMessageResource::collection($messages);
+        return CommunityRoomMessageResource::collection($messages)
+            ->additional([
+                'next_cursor' => $messages->nextCursor()?->encode(),
+                'prev_cursor' => $messages->previousCursor()?->encode(),
+                'per_page' => $messages->perPage(),
+            ]);
     }
 
     public function store(Request $request, string $room)

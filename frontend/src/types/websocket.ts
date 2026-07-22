@@ -47,6 +47,45 @@ export interface ChatMessageEvent {
 }
 
 /**
+ * Room chat message event payload (via WebSockets)
+ */
+export interface RoomChatMessagePayload {
+  message: {
+    id: number
+    room: string
+    body: string
+    text?: string
+    time?: string
+    sent_at?: string
+    sender?: {
+      id: number
+      name?: string
+      username: string
+      color?: string
+      initial?: string
+      role?: string
+    } | null
+  }
+}
+
+/**
+ * Cursor-paginated room chat response
+ */
+export interface CursorPaginatedChatResponse {
+  data: RoomChatMessagePayload['message'][]
+  next_cursor?: string | null
+  prev_cursor?: string | null
+  per_page?: number
+  has_more?: boolean
+  meta?: {
+    next_cursor?: string | null
+    prev_cursor?: string | null
+    per_page?: number
+    has_more?: boolean
+  }
+}
+
+/**
  * Unread count event data
  */
 export interface UnreadCountEvent {
@@ -91,6 +130,7 @@ export interface WebSocketEventDataMap {
   'stats-updated': StatsUpdatedEvent
   'notification': NotificationEvent
   'chat-message': ChatMessageEvent
+  'chat.message': RoomChatMessagePayload
   'unread-count': UnreadCountEvent
   'player-action': PlayerActionEvent
   'system-alert': SystemAlertEvent

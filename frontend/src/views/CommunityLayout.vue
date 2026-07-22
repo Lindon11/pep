@@ -1448,6 +1448,7 @@ const vendorStats = ref<VendorStats>({
 const apiAnnouncements = ref<UiAnnouncement[]>([])
 const apiDetailAnnouncement = ref<UiAnnouncement | null>(null)
 const announcementsLoaded = ref(false)
+const announcementPagination = ref<PaginationMeta | null>(null)
 const announcementFilter = ref('all')
 const announcementStatusMessage = ref('')
 const announcementCategories = ref<AnnouncementCategory[]>([])
@@ -3629,7 +3630,7 @@ async function loadHomeBootstrap(): Promise<void> {
     
     if (data.lab_results) {
       apiLabResults.value = (data.lab_results.data ?? []).map(mapLabResult)
-      labResultPagination.value = extractPagination(data.lab_results.meta)
+      labPagination.value = extractPagination(data.lab_results.meta)
       labResultsLoaded.value = true
     }
 
@@ -7952,6 +7953,7 @@ provide('communityState', {
   announcementStatusMessage,
   announcementCategories,
   announcementStats,
+  announcementPagination,
   apiResearchArticles,
   apiDetailResearchArticle,
   apiGuides,

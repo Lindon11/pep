@@ -17,6 +17,7 @@ export type WebSocketEvent =
   | 'stats-updated'
   | 'notification'
   | 'chat-message'
+  | 'chat.message'
   | 'unread-count'
   | 'player-action'
   | 'system-alert'
@@ -203,7 +204,7 @@ class WebSocketService {
   /**
    * Listen for events
    */
-  on<T = unknown>(event: WebSocketEvent, callback: EventCallback<T>): () => void {
+  on<T = unknown>(event: WebSocketEvent | (string & {}), callback: EventCallback<T>): () => void {
     if (!this.eventListeners.has(event)) {
       this.eventListeners.set(event, new Set())
     }

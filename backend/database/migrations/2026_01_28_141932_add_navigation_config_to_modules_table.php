@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('modules', function (Blueprint $table) {
-            $table->json('navigation_config')->nullable()->after('settings');
-        });
+        if (Schema::hasTable('modules') && !Schema::hasColumn('modules', 'navigation_config')) {
+            Schema::table('modules', function (Blueprint $table) {
+                $table->json('navigation_config')->nullable()->after('settings');
+            });
+        }
     }
 
     /**

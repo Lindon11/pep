@@ -25,17 +25,18 @@
         </button>
       </nav>
 
-      <div class="pv-chat-messages" ref="messagesContainer">
+      <div class="pv-chat-messages" ref="messagesContainer" @scroll="handleScroll">
+        <div v-if="loadingMore" class="pv-chat-notice loading-more">Loading older messages...</div>
         <div v-if="loading" class="pv-chat-notice">Loading messages...</div>
         <div v-else-if="error" class="pv-chat-error">{{ error }}</div>
         <div v-else-if="messages.length === 0" class="pv-chat-notice">No messages yet. Start the conversation.</div>
         
         <div v-for="msg in messages" :key="msg.id" class="pv-chat-message">
           <div class="pv-chat-message-header">
-            <span class="pv-chat-sender" :class="{'system': !msg.sender}">{{ msg.sender ? msg.sender.username : 'SYSTEM' }}</span>
+            <span class="pv-chat-sender" :class="{'system': !msg.sender}">{{ msg.sender ? (msg.sender.username || msg.sender.name) : 'SYSTEM' }}</span>
             <span class="pv-chat-time">{{ msg.time }}</span>
           </div>
-          <div class="pv-chat-message-body">{{ msg.text }}</div>
+          <div class="pv-chat-message-body">{{ msg.text || msg.body }}</div>
         </div>
       </div>
 
@@ -56,28 +57,74 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onUnmounted, nextTick } from 'vue'
 import { websocketService } from '@/services/websocket'
 import api from '@/services/api'
 import PvIcon from '@/components/peptide/PvIcon.vue'
 import { useAuthStore } from '@/stores/auth'
+import { hasAnyRole } from '@/composables/usePermission'
+
+export interface ChatUser {
+  id: number
+  name?: string
+  username: string
+  avatar_url?: string
+  color?: string
+  initial?: string
+  role?: string
+}
+
+export interface ChatMessage {
+  id: number
+  room?: string
+  text?: string
+  body?: string
+  time?: string
+  sent_at?: string
+  created_at?: string
+  sender?: ChatUser | null
+}
+
+export interface ChatApiResponse {
+  data: ChatMessage[]
+  next_cursor?: string | null
+  prev_cursor?: string | null
+  has_more?: boolean
+  per_page?: number
+  meta?: {
+    next_cursor?: string | null
+    prev_cursor?: string | null
+    has_more?: boolean
+    per_page?: number
+  }
+}
+
+export interface PostMessageResponse {
+  data: ChatMessage
+}
+
+export interface Room {
+  slug: string
+  name: string
+}
 
 const isOpen = ref(false)
 const loading = ref(false)
+const loadingMore = ref(false)
+const next_cursor = ref<string | null>(null)
+const hasMore = ref(false)
 const error = ref('')
 const activeRoom = ref('global')
-const messages = ref<any[]>([])
+const messages = ref<ChatMessage[]>([])
 const newMessage = ref('')
 const messagesContainer = ref<HTMLElement | null>(null)
-
-import { hasAnyRole } from '@/composables/usePermission'
 
 const authStore = useAuthStore()
 
 const isAdmin = computed(() => hasAnyRole(['admin']))
 
-const rooms = computed(() => {
-  const allRooms = [
+const rooms = computed<Room[]>(() => {
+  const allRooms: Room[] = [
     { slug: 'global', name: 'GLOBAL' },
     { slug: 'premium-lounge', name: 'PREMIUM' },
     { slug: 'vendors', name: 'VENDORS' },
@@ -101,17 +148,57 @@ const toggleChat = () => {
   }
 }
 
+const parseMessageResponse = (
+  resData: any
+): { msgs: ChatMessage[]; nextCursor: string | null; hasMoreMessages: boolean } => {
+  let rawMsgs: ChatMessage[] = []
+  let nextCursor: string | null = null
+  let hasMoreMessages = false
+
+  if (Array.isArray(resData)) {
+    rawMsgs = resData
+  } else if (resData && typeof resData === 'object') {
+    rawMsgs = Array.isArray(resData.data) ? resData.data : []
+    nextCursor = resData.next_cursor ?? resData.meta?.next_cursor ?? null
+
+    if (typeof resData.has_more === 'boolean') {
+      hasMoreMessages = resData.has_more
+    } else if (typeof resData.meta?.has_more === 'boolean') {
+      hasMoreMessages = resData.meta.has_more
+    } else {
+      hasMoreMessages = Boolean(nextCursor)
+    }
+  }
+
+  const msgs = [...rawMsgs]
+  if (msgs.length > 1) {
+    const firstId = Number(msgs[0]?.id)
+    const lastId = Number(msgs[msgs.length - 1]?.id)
+    if (!isNaN(firstId) && !isNaN(lastId) && firstId > lastId) {
+      msgs.reverse()
+    }
+  }
+
+  return { msgs, nextCursor, hasMoreMessages }
+}
+
 const switchRoom = async (slug: string) => {
   activeRoom.value = slug
   messages.value = []
+  next_cursor.value = null
+  hasMore.value = false
+  loadingMore.value = false
   error.value = ''
   loading.value = true
 
   unsubscribeRoom()
 
   try {
-    const res = await api.get(`/api/v1/community/chat/rooms/${slug}`)
-    messages.value = res.data.data || []
+    const res = await api.get<ChatApiResponse | ChatMessage[]>(`/api/v1/community/chat/rooms/${slug}`)
+    const { msgs, nextCursor, hasMoreMessages } = parseMessageResponse(res.data)
+    messages.value = msgs
+    next_cursor.value = nextCursor
+    hasMore.value = hasMoreMessages
     scrollToBottom()
     subscribeRoom(slug)
   } catch (err: any) {
@@ -125,13 +212,67 @@ const switchRoom = async (slug: string) => {
   }
 }
 
+const fetchOlderMessages = async () => {
+  if (!hasMore.value || loadingMore.value || !next_cursor.value || loading.value) return
+
+  loadingMore.value = true
+  const container = messagesContainer.value
+  const previousScrollHeight = container ? container.scrollHeight : 0
+
+  try {
+    const res = await api.get<ChatApiResponse | ChatMessage[]>(`/api/v1/community/chat/rooms/${activeRoom.value}`, {
+      params: { cursor: next_cursor.value }
+    })
+    const { msgs: olderMsgs, nextCursor, hasMoreMessages } = parseMessageResponse(res.data)
+
+    if (olderMsgs.length > 0) {
+      const existingIds = new Set(messages.value.map(m => m.id))
+      const newOlderMsgs = olderMsgs.filter(m => !existingIds.has(m.id))
+      messages.value = [...newOlderMsgs, ...messages.value]
+    }
+
+    next_cursor.value = nextCursor
+    hasMore.value = hasMoreMessages
+
+    await nextTick()
+    if (container && previousScrollHeight > 0) {
+      container.scrollTop = container.scrollHeight - previousScrollHeight
+    }
+  } catch (err: any) {
+    console.error('Failed to fetch older chat messages:', err)
+  } finally {
+    loadingMore.value = false
+  }
+}
+
+const handleScroll = (e: Event) => {
+  const target = e.target as HTMLElement
+  if (target && target.scrollTop <= 10 && hasMore.value && !loadingMore.value && !loading.value) {
+    fetchOlderMessages()
+  }
+}
+
 const subscribeRoom = (slug: string) => {
   const channel = `room.${slug}`
   websocketService.subscribe(channel)
   unsubscribe = websocketService.on('chat.message', (data: any, msg: any) => {
-    if (msg.channel === channel) {
-      messages.value.push(data.message)
-      scrollToBottom()
+    const targetChannel = msg?.channel || channel
+    if (targetChannel === channel) {
+      const incomingMsg: ChatMessage = data?.message || data
+      if (incomingMsg && incomingMsg.id != null) {
+        if (!messages.value.some(m => m.id === incomingMsg.id)) {
+          const container = messagesContainer.value
+          const isNearBottom = container
+            ? container.scrollHeight - container.scrollTop - container.clientHeight <= 80
+            : true
+
+          messages.value.push(incomingMsg)
+
+          if (isNearBottom) {
+            scrollToBottom()
+          }
+        }
+      }
     }
   })
 }
@@ -141,23 +282,23 @@ const unsubscribeRoom = () => {
     unsubscribe()
     unsubscribe = null
   }
-  rooms.forEach(r => websocketService.unsubscribe(`room.${r.slug}`))
+  rooms.value.forEach((r: Room) => websocketService.unsubscribe(`room.${r.slug}`))
 }
 
 const sendMessage = async () => {
   if (!newMessage.value.trim() || !!error.value) return
-  
+
   const text = newMessage.value.trim()
   newMessage.value = ''
-  
+
   try {
-    const res = await api.post(`/api/v1/community/chat/rooms/${activeRoom.value}/messages`, {
+    const res = await api.post<PostMessageResponse | { data: ChatMessage }>(`/api/v1/community/chat/rooms/${activeRoom.value}/messages`, {
       body: text
     })
-    if (res.data && res.data.data) {
-      const msg = res.data.data
-      if (!messages.value.find(m => m.id === msg.id)) {
-        messages.value.push(msg)
+    const postedMsg: ChatMessage | undefined = (res.data as any)?.data || (res.data as any)
+    if (postedMsg && postedMsg.id != null) {
+      if (!messages.value.some(m => m.id === postedMsg.id)) {
+        messages.value.push(postedMsg)
         scrollToBottom()
       }
     }
@@ -319,6 +460,10 @@ onUnmounted(() => {
   font-size: 12px;
   margin-top: auto;
   margin-bottom: auto;
+}
+.pv-chat-notice.loading-more {
+  margin-top: 0;
+  margin-bottom: 4px;
 }
 .pv-chat-notice.error {
   color: var(--pv-red);

@@ -8,9 +8,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('peptide_vendors_iptv_lines', function (Blueprint $table) {
-            $table->boolean('can_dm')->default(false)->after('linked_at');
-        });
+        if (Schema::hasTable('peptide_vendors_iptv_lines') && !Schema::hasColumn('peptide_vendors_iptv_lines', 'can_dm')) {
+            Schema::table('peptide_vendors_iptv_lines', function (Blueprint $table) {
+                $table->boolean('can_dm')->default(false)->after('linked_at');
+            });
+        }
     }
 
     public function down(): void

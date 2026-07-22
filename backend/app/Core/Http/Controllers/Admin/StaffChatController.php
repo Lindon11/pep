@@ -7,44 +7,39 @@ use App\Core\Models\StaffChatMessage;
 use App\Core\Models\StaffChatReadStatus;
 use App\Core\Models\User;
 use App\Core\Facades\TextFormatter;
+use App\Core\Services\WebSocketService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 
 class StaffChatController extends Controller
 {
+    public function __construct(
+        protected WebSocketService $websocket
+    ) {}
+
     /**
-     * Get staff chat messages.
+     * Get staff chat messages using cursor pagination.
      */
     public function messages(Request $request): JsonResponse
     {
         $user = $request->user();
+        $perPage = (int) $request->input('per_page', 50);
 
-        // Check if table exists
-        if (!\Schema::hasTable('staff_chat_messages')) {
-            return response()->json([
-                'messages' => [],
-                'online_staff' => [],
-                'unread_count' => 0,
-            ]);
-        }
-
-        // Get last 100 messages
-        $messages = StaffChatMessage::with(['user:id,username,name'])
+        $paginator = StaffChatMessage::with(['user:id,username,name'])
             ->orderBy('created_at', 'desc')
-            ->limit(100)
-            ->get()
-            ->reverse()
-            ->values()
-            ->map(fn($msg) => [
-                'id' => $msg->id,
-                'user_id' => $msg->user_id,
-                'username' => $msg->user->username ?? $msg->user->name,
-                'content' => class_exists(TextFormatter::class) ? TextFormatter::format($msg->content) : $msg->content,
-                'content_raw' => $msg->content,
-                'mentioned_user_id' => $msg->mentioned_user_id,
-                'created_at' => $msg->created_at->toIso8601String(),
-            ]);
+            ->orderBy('id', 'desc')
+            ->cursorPaginate($perPage);
+
+        $paginator->through(fn($msg) => [
+            'id' => $msg->id,
+            'user_id' => $msg->user_id,
+            'username' => $msg->user->username ?? $msg->user->name,
+            'content' => class_exists(TextFormatter::class) ? TextFormatter::format($msg->content) : $msg->content,
+            'content_raw' => $msg->content,
+            'mentioned_user_id' => $msg->mentioned_user_id,
+            'created_at' => $msg->created_at->toIso8601String(),
+        ]);
 
         // Get online staff (admins/moderators active in last 5 minutes)
         $onlineStaff = User::role(['admin', 'moderator'])
@@ -56,17 +51,21 @@ class StaffChatController extends Controller
                 'username' => $u->username ?? $u->name,
             ]);
 
-        // Update user's read status
-        $this->updateReadStatus($user->id, $messages->last()['id'] ?? null);
+        $items = $paginator->items();
+        $firstItem = reset($items) ?: null;
+
+        // Update user's read status with latest message id in dataset
+        $lastReadId = is_array($firstItem) ? ($firstItem['id'] ?? null) : ($firstItem?->id ?? null);
+        $this->updateReadStatus($user->id, $lastReadId);
 
         // Update user's last active time for online status
         $user->update(['last_active' => now()]);
 
-        return response()->json([
-            'messages' => $messages,
+        return response()->json(array_merge($paginator->toArray(), [
+            'messages' => $paginator->items(),
             'online_staff' => $onlineStaff,
             'current_user_id' => $user->id,
-        ]);
+        ]));
     }
 
     /**
@@ -101,16 +100,23 @@ class StaffChatController extends Controller
         // Update user's last active
         $user->update(['last_active' => now()]);
 
+        $messageData = [
+            'id' => $message->id,
+            'user_id' => $message->user_id,
+            'username' => $user->username ?? $user->name,
+            'content' => $message->content,
+            'mentioned_user_id' => $message->mentioned_user_id,
+            'created_at' => $message->created_at->toIso8601String(),
+        ];
+
+        // Broadcast WebSocket event to staff-chat channel
+        $this->websocket->broadcast('staff-chat', 'chat.message', [
+            'message' => $messageData,
+        ]);
+
         return response()->json([
             'success' => true,
-            'message' => [
-                'id' => $message->id,
-                'user_id' => $message->user_id,
-                'username' => $user->username ?? $user->name,
-                'content' => $message->content,
-                'mentioned_user_id' => $message->mentioned_user_id,
-                'created_at' => $message->created_at->toIso8601String(),
-            ],
+            'message' => $messageData,
         ]);
     }
 
@@ -120,11 +126,6 @@ class StaffChatController extends Controller
     public function unread(Request $request): JsonResponse
     {
         $user = $request->user();
-
-        // Check if table exists
-        if (!\Schema::hasTable('staff_chat_messages')) {
-            return response()->json(['count' => 0]);
-        }
 
         $readStatus = StaffChatReadStatus::where('user_id', $user->id)->first();
         $lastReadId = $readStatus?->last_read_message_id ?? 0;
@@ -156,3 +157,4 @@ class StaffChatController extends Controller
         );
     }
 }
+

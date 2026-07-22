@@ -7,6 +7,7 @@ use App\Core\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redis;
 
 class WebSocketService
 {
@@ -235,15 +236,9 @@ class WebSocketService
     protected function storeMessage(string $channel, array $payload): void
     {
         $key = "ws_messages:{$channel}";
-        $messages = Cache::get($key, []);
-
-        // Keep last 100 messages per channel
-        $messages[] = $payload;
-        if (count($messages) > 100) {
-            $messages = array_slice($messages, -100);
-        }
-
-        Cache::put($key, $messages, now()->addHours(1));
+        Redis::lpush($key, json_encode($payload));
+        Redis::ltrim($key, 0, 99);
+        Redis::expire($key, 3600);
     }
 
     /**
@@ -251,10 +246,25 @@ class WebSocketService
      */
     public function getMessages(string $channel, ?string $since = null): array
     {
-        $messages = Cache::get("ws_messages:{$channel}", []);
+        $key = "ws_messages:{$channel}";
+        $rawMessages = Redis::lrange($key, 0, 99);
+
+        if (empty($rawMessages)) {
+            return [];
+        }
+
+        $messages = [];
+        foreach ($rawMessages as $raw) {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                $messages[] = $decoded;
+            }
+        }
+
+        $messages = array_reverse($messages);
 
         if ($since) {
-            $messages = array_filter($messages, fn($m) => $m['timestamp'] > $since);
+            $messages = array_filter($messages, fn($m) => isset($m['timestamp']) && $m['timestamp'] > $since);
         }
 
         return array_values($messages);
@@ -312,7 +322,22 @@ class WebSocketService
      */
     public function getPresenceMembers(string $channel): array
     {
-        return Cache::get("presence:{$channel}", []);
+        $key = "presence:{$channel}";
+        $rawMembers = Redis::hgetall($key);
+
+        if (empty($rawMembers)) {
+            return [];
+        }
+
+        $members = [];
+        foreach ($rawMembers as $userId => $raw) {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                $members[$userId] = $decoded;
+            }
+        }
+
+        return $members;
     }
 
     /**
@@ -320,18 +345,21 @@ class WebSocketService
      */
     public function joinPresence(string $channel, User $user): void
     {
-        $members = $this->getPresenceMembers($channel);
-        $members[$user->id] = [
+        $key = "presence:{$channel}";
+        $userData = [
             'id' => $user->id,
             'username' => $user->username,
             'avatar' => $user->avatar ?? null,
             'joined_at' => now()->toIso8601String(),
         ];
 
-        Cache::put("presence:{$channel}", $members, now()->addHours(1));
+        Redis::hset($key, (string) $user->id, json_encode($userData));
+        Redis::expire($key, 3600);
+
+        $members = $this->getPresenceMembers($channel);
 
         $this->broadcast($channel, 'member_joined', [
-            'user' => $members[$user->id],
+            'user' => $userData,
             'members_count' => count($members),
         ]);
     }
@@ -341,10 +369,10 @@ class WebSocketService
      */
     public function leavePresence(string $channel, User $user): void
     {
-        $members = $this->getPresenceMembers($channel);
-        unset($members[$user->id]);
+        $key = "presence:{$channel}";
+        Redis::hdel($key, (string) $user->id);
 
-        Cache::put("presence:{$channel}", $members, now()->addHours(1));
+        $members = $this->getPresenceMembers($channel);
 
         $this->broadcast($channel, 'member_left', [
             'user_id' => $user->id,

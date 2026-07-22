@@ -137,3 +137,5 @@ frontend/.npm-cache
 .npm-cache
 .env
 .git.bak/
+
+.agents/
